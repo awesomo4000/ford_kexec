@@ -1,6 +1,6 @@
-EXTRA_CFLAGS += -mfpu=neon
+#EXTRA_CFLAGS += -mfpu=neon
 #EXTRA_CFLAGS += -D__KERNEL__ -DKERNEL -DCONFIG_KEXEC -DCONFIG_KEXEC_JUMP -march=armv7-a -mtune=cortex-a9
-EXTRA_CFLAGS += -D__KERNEL__ -DKERNEL -DCONFIG_KEXEC -march=armv7-a -mtune=cortex-a9
+EXTRA_CFLAGS += -DCONFIG_KEXEC -DCONFIG_ARM 
 
 # Make this match the optimisation values of the kernel you're
 # loading this into. Should work without changes, but it seems to
@@ -9,33 +9,20 @@ EXTRA_CFLAGS += -D__KERNEL__ -DKERNEL -DCONFIG_KEXEC -march=armv7-a -mtune=corte
 # something appropriate to your phone
 # EXTRA_CFLAGS += -O0
 
-ARCH		= arm
-KERNEL ?= /mnt/mnt/kernel-build
-CONFIG = ford_cyanogenmod_defconfig
-CROSS_COMPILE ?= /mnt/mnt/cyanogen/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
+ARCH	?= arm
+KDIR	?= $(HOME)/src/linux-3.18-msm
+CROSS	?= armv7-unknown-linux-gnueabihf-
 
-CPPFLAGS	=  -I$(KERNEL)/
+LDFLAGS=-static
 
 obj-m += kexec_load.o
+
 kexec_load-objs := kexec.o machine_kexec.o sys.o relocate_kernel.o \
 	rodata.o
 
-all: module push
-
-module:
-	ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) make -C $(KERNEL)/ M=$(PWD) modules
+all: 
+	make ARCH=$(ARCH) CROSS_COMPILE=$(CROSS) -C $(KDIR) M=$(PWD)
+	modinfo kexec_load.o
 
 clean:
-	ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) make -C $(KERNEL)/ M=$(PWD) clean
-	rm -f *.order
-
-prepare:
-	ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) make -C $(KERNEL)/ $(CONFIG)
-	ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) make -C $(KERNEL)/ modules_prepare
-
-kernel_clean:
-	ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) make -C $(KERNEL)/ mrproper
-	ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) make -C $(KERNEL)/ clean
-
-push:
-	adb push kexec_load.ko /mnt/sdcard/
+	rm -rf *.o *.ko *.d .*.o.cmd .*.ko.cmd *.order .tmp_versions Module.symvers Modules.order *.mod.c
